@@ -4,7 +4,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 # For debugging only
-set -x
+# set -x
 
 STATS_SOCKET=/var/lib/haproxy/stats
 
@@ -23,28 +23,36 @@ function run-haproxy-command {
 	echo "${haproxy_command}" | $PATH_TO_SOCAT $STATS_SOCKET stdio
 }
 
+function show-haproxy-status {
+	# See https://cbonte.github.io/haproxy-dconv/1.8/management.html#9.1
+	echo "Proxy name, Service name, Status"
+	 # Show only fields beginning with 'app', show 'pxname,svname,status' fields
+	run-haproxy-command "show stat" | grep '^app,' | cut -d ',' -f 1,2,18 | grep -v '^#'
+}
+
 if [ "${command}" = "blue" ]
 then 
+	echo 'Switching to blue...'
 	run-haproxy-command "enable server app/blue"
 	run-haproxy-command "disable server app/green"
+	show-haproxy-status
 	exit 0
 fi
 
 if [ "${command}" = "green" ]
 then 
+	echo 'Switching to green...'
 	run-haproxy-command "enable server app/green"
 	run-haproxy-command "disable server app/blue"
+	show-haproxy-status
 	exit 0
 fi
 
-if [ "${command}" = "" ]
+if [ "${command}" = "ls" ]
 then 
-	# See https://cbonte.github.io/haproxy-dconv/1.8/management.html#9.1
-	echo "Proxy name, Service name, Status"
-	 # Show only fields beginning with 'app', show 'pxname,svname,status' fields
-	run-haproxy-command "show stat" | grep '^app,' | cut -d ',' -f 1,2,18 | grep -v '^#'
+	show-haproxy-status
 	exit 0
 fi
 
-echo "Usage: swap-server [blue|green]"
+echo "Usage: swap-server [blue|green|ls]"
 exit 1
