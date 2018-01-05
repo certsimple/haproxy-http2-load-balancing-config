@@ -1,0 +1,50 @@
+#!/usr/bin/env bash	
+
+set -euo pipefail
+IFS=$'\n\t'
+
+# For debugging only
+set -x
+
+STATS_SOCKET=/var/lib/haproxy/stats
+
+PATH_TO_SOCAT="$(which socat || true)"
+
+command=${1:-""}
+
+if [ ! -x "${PATH_TO_SOCAT}" ]
+then
+	echo "Could not find 'socat' in path. Exiting."
+	exit 1
+fi
+
+function run-haproxy-command {
+	haproxy_command="${1}"
+	echo "${haproxy_command}" | $PATH_TO_SOCAT $STATS_SOCKET stdio
+}
+
+if [ "${command}" = "blue" ]
+then 
+	run-haproxy-command "enable server app/blue"
+	run-haproxy-command "disable server app/green"
+	exit 0
+fi
+
+if [ "${command}" = "green" ]
+then 
+	run-haproxy-command "enable server app/green"
+	run-haproxy-command "disable server app/blue"
+	exit 0
+fi
+
+if [ "${command}" = "" ]
+then 
+	# See https://cbonte.github.io/haproxy-dconv/1.8/management.html#9.1
+	echo "Proxy name, Service name, Status"
+	 # Show only fields beginning with 'app', show 'pxname,svname,status' fields
+	run-haproxy-command "show info" | grep '^app,' | cut -d ',' -f 1,2,18 | grep -v '^#'
+	exit 0
+fi
+
+echo "Usage: swap-server [blue|green]"
+exit 1
