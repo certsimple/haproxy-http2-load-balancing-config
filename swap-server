@@ -42,7 +42,7 @@ then
 	# See https://cbonte.github.io/haproxy-dconv/1.8/management.html#9.1
 	echo "Proxy name, Service name, Status"
 	 # Show only fields beginning with 'app', show 'pxname,svname,status' fields
-	run-haproxy-command "show info" | grep '^app,' | cut -d ',' -f 1,2,18 | grep -v '^#'
+	run-haproxy-command "show stat" | grep '^app,' | cut -d ',' -f 1,2,18 | grep -v '^#'
 	exit 0
 fi
 
